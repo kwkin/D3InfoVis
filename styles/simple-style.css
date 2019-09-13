@@ -1,0 +1,81 @@
+body {
+  font: 14px sans-serif;
+  font-weight: bold;
+}
+
+.chart {
+    /* background-color: #efefef; */
+    background-color: white;
+    /* shape-rendering: crispEdges; */
+    shape-rendering: auto;
+    border-style: solid;
+    border-color: #d3d3d3;
+ }
+
+
+.axis text {
+    font-family: sans-serif;
+    font-size: 11px;
+}
+
+ .text0 {
+    fill: red;
+ }
+
+ .text1 {
+    fill: green;
+ }
+
+ .text2 {
+    fill:steelblue;
+ }
+
+ .text3 {
+    fill: yellow;
+ }
+
+ .text4 {
+    fill: purple;
+ }
+
+ .text5 {
+    fill:brown;
+ }
+
+ .node {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+.link {
+  stroke: #999;
+  stroke-opacity: .6;
+}
+
+.button {
+   position: relative;
+ 
+   margin: 0px 5px;
+   padding: 12px 12px;
+   font-size: 14px;
+ 
+   overflow: hidden;
+ 
+   border-width: 0;
+   outline: none;
+   border-radius: 2px;
+   box-shadow: 0 1px 4px rgba(0, 0, 0, .6);
+   
+   background-color: #2ecc71;
+   color: #ecf0f1;
+   
+   transition: background-color .3s;
+ }
+ 
+.button:hover {
+   background-color: #27ae60;
+ }
+ 
+ .button:active {
+   background-color: #166939;
+ }
