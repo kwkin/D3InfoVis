@@ -17,7 +17,7 @@
 	var isPaused = false;
 
 	var dotColor = "red";
-	var interval;
+	var timer;
 	var lastStop;
 
 	const local = d3.local();
@@ -104,7 +104,20 @@
 	}
 
 	function animateScatterplot(id, data, width, height, speedMs) {
-		var dots = chart.plotArea.selectAll(".dot")
+		initializeDots(data);
+
+		xMin = dataXRange.min;
+		xMax = dataXRange.max;
+		
+		redrawWithAnimation(speedMs);
+		timer = d3.interval(function(elapsed) {
+			if (elapsed >= speedMs)
+				redrawWithAnimation(speedMs)
+		}, speedMs);
+	}
+
+	function initializeDots(data) {
+		chart.plotArea.selectAll(".dot")
 			.data(data)
 			.enter().append("circle")
 				.attr("class", "dot")
@@ -119,16 +132,10 @@
 				.on("click", function(d) {
 					console.log("circle: ", d.xVal, ", ", d.yVal);
 				});
-
-		xMin = dataXRange.min;
-		xMax = dataXRange.max;
-		interval = setInterval(function() {
-			redrawWithAnimation(speedMs)
-		}, speedMs) 	
 	}
 
 	function redrawWithAnimation(speedMs) {
-		chart.xScale.domain([xMin++, xMax++])
+		chart.xScale.domain([++xMin, ++xMax])
 		chart.select(".x")
 			.transition()
 			.ease(d3.easeLinear)
@@ -189,34 +196,10 @@
 				})
 				.on("click", function(d, i) {
 					if(isPaused) {
-						d3.select(this).transition().attr("value", "Pause");
-						d3.selectAll(".dot").transition()
-							.attr("cx", function(d) { 
-								xVal = chart.xScale(d.xVal)
-								if (xVal < 0)
-									d3.select(this).transition().attr("r", 0);
-								return xVal; 
-							})
-							.attr("cy", function(d) { 
-								return chart.yScale(d.yVal); 
-							})
-							.ease(d3.easeLinear)
-							.duration(function() {
-								lastStop = local.get(this);
-								return 1000 * (560 - lastStop) / 560;
-							})
-							.on("interrupt", function() {
-								console.log("Interrupting");
-							});
-						interval = setInterval(function() {
-							redrawWithAnimation(1000)
-						}, 1000) 	
+						d3.select(this).transition().attr("value", "Pause");	
 					}
 					else {
 						d3.select(this).transition().attr("value", "Play");
-						d3.selectAll(".dot")
-							.interrupt();
-						clearInterval(interval);
 					}
 					isPaused = !isPaused;
 				});
