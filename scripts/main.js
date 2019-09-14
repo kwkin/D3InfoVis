@@ -1,3 +1,8 @@
+// Student: Kenneth W. King
+// ID: 0901-3401
+// Course #: CIS6930
+// Course Name: Information Visualization
+// Semester: Fall 2019
 ;(function() {
 
 	var margin = { top: 10, right: 0, bottom: 100, left: 50 };
@@ -14,13 +19,14 @@
 	var chart;
 	var chartWidth;
 	var chartHeight;
-	var isPaused = false;
+	var isPaused = true;
+
+	var rateMs = 1000;
+	var timer;
+	var pauseButton;
+	var playButton;
 
 	var dotColor = "red";
-	var timer;
-	var lastStop;
-
-	const local = d3.local();
 
 	init();
 
@@ -34,17 +40,15 @@
 		// load data from json
 		d3.json("./data/stream_1.json").then(function(json){
 			data = json;
-			rateMs = 1000;
 			console.log("JSON loaded");
 
 			initializeChart();
 			createAxes();
 
-			animateScatterplot("#graph1", data, 400, 300, rateMs);
+			animateScatterplot("#graph1", data, 400, 300);
 
 			addResetButton();
 			addPlayPauseButton();
-
 		}).catch(function(error) {console.warn(error)})
 
 	}//end init
@@ -108,12 +112,6 @@
 
 		xMin = dataXRange.min;
 		xMax = dataXRange.max;
-		
-		redrawWithAnimation(speedMs);
-		timer = d3.interval(function(elapsed) {
-			if (elapsed >= speedMs)
-				redrawWithAnimation(speedMs)
-		}, speedMs);
 	}
 
 	function initializeDots(data) {
@@ -134,14 +132,25 @@
 				});
 	}
 
-	function redrawWithAnimation(speedMs) {
+	function startAnimation() {
+		redrawWithAnimation();
+		timer = d3.interval(function() {
+			redrawWithAnimation()
+		}, rateMs);
+	}
+	
+	function stopAnimation() {
+		timer.stop();
+	}
+
+	function redrawWithAnimation() {
 		chart.xScale.domain([++xMin, ++xMax])
 		chart.select(".x")
 			.transition()
 			.ease(d3.easeLinear)
-			.duration(speedMs)
+			.duration(rateMs)
 			.call(chart.xAxis);
-		
+
 		chart.plotArea.selectAll(".dot")
 			.data(data)
 				.attr("class", "dot")
@@ -159,49 +168,85 @@
 					return chart.yScale(d.yVal); 
 				})
 				.ease(d3.easeLinear)
-				.duration(speedMs)
-				.on("interrupt", function() {
-					local.set(this, +d3.select(this).attr("cx"))
+				.duration(rateMs);
+	}
+
+	function resetData() {
+		stopAnimation();
+		chart.plotArea.selectAll(".dot")
+			.interrupt();
+			
+		// Reset axis
+		xMin = dataXRange.min;
+		xMax = dataXRange.max;
+		chart.xScale.domain([xMin, xMax])
+		chart.select(".x")
+			.transition()
+			.duration(0)
+			.call(chart.xAxis);
+		
+		// Reset position of dots
+		chart.plotArea.selectAll(".dot")
+			.data(data)
+				.attr("class", "dot")
+				.attr("cx", function(d) { 
+					return chart.xScale(d.xVal); 
+				})
+				.attr("cy", function(d) { 
+					return chart.yScale(d.yVal); 
+				})
+				.attr("r", circleRadius)
+				.attr("fill", dotColor)
+				.on("click", function(d) {
+					console.log("circle: ", d.xVal, ", ", d.yVal);
 				});
 	}
 
 	function addResetButton() {
-		var buttonNames = ["Reset"]
+		var buttonData = [{label: "Reset", width: "80px"}]
 
-		d3.select("body").selectAll("resetButton")
-			.data(buttonNames).enter()
+		pauseButton = d3.select("body").selectAll("resetButton")
+			.data(buttonData).enter()
 				.append("input")
 				.attr("type","button")
 				.attr("class","button")
-				.style("width", "80px")
-				.attr("value", function (d) {
-					return d;
+				.style("width", function(d) {
+					return d.width;
+				})
+				.attr("value", function(d) {
+					return d.label;
 				})
 				.on("click", function(d, i) {
-					console.log("reset");
+					isPaused = true;
+					playButton.attr("value", "Play")
+					resetData();
 				});
 	}
 
 	function addPlayPauseButton() {
-		var buttonNames = ["Pause"]
+		var buttonData = [{label: "Play", width: "80px"}]
 
-		d3.select("body").selectAll("pauseButton")
-			.data(buttonNames).enter()
+		playButton = d3.select("body").selectAll("pauseButton")
+			.data(buttonData).enter()
 				.append("input")
 				.attr("type", "button")
 				.attr("class", "button")
-				.style("width", "80px")
-				.attr("value", function (d) {
-					return d;
+				.style("width", function(d) {
+					return d.width;
+				})
+				.attr("value", function(d) {
+					return d.label;
 				})
 				.on("click", function(d, i) {
 					if(isPaused) {
-						d3.select(this).transition().attr("value", "Pause");	
+						d3.select(this).attr("value", "Pause");	
+						startAnimation();
 					}
 					else {
-						d3.select(this).transition().attr("value", "Play");
+						d3.select(this).attr("value", "Play");
+						stopAnimation();
 					}
 					isPaused = !isPaused;
-				});
+				});	
 	}
 })();
