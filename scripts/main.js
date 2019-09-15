@@ -21,13 +21,13 @@
 	var chartHeight;
 	var isPaused = true;
 
-	var rateMs = 1000;
+	var rateMs = 500;
 	var timer;
 	var pauseButton;
 	var playButton;
 
 	var dotColor = "red";
-
+	var e = d3.select("#time");
 	init();
 
 	function init() {
@@ -39,6 +39,8 @@
 
 		// load data from json
 		d3.json("./data/stream_1.json").then(function(json){
+			e.attr("T",0);
+
 			data = json;
 			console.log("JSON loaded");
 
@@ -141,40 +143,74 @@
 	
 	function stopAnimation() {
 		timer.stop();
+		
+		chart.plotArea.selectAll(".dot")
+			.interrupt()
 	}
 
 	function redrawWithAnimation() {
 		chart.xScale.domain([++xMin, ++xMax])
-		chart.select(".x")
-			.transition()
-			.ease(d3.easeLinear)
-			.duration(rateMs)
-			.call(chart.xAxis);
+		// chart.select(".x")
+		// 	.transition()
+		// 	.ease(d3.easeLinear)
+		// 	.duration(rateMs)
+		// 	.call(chart.xAxis);
 
 		chart.plotArea.selectAll(".dot")
 			.data(data)
 				.attr("class", "dot")
 				.on("click", function(d) {
 					console.log("circle: ", d.xVal, ", ", d.yVal);
+
+					indexData = [1, 2, 3, 4]
+					var circle = chart.plotArea.selectAll(".animation")
+						.data(indexData)
+						.enter().append("circle")
+							.attr("cx", function(index) {
+								xScale = chart.xScale(d.xVal)
+								return xScale;
+							})
+							.attr("cy", function(index) { 
+								yScale = chart.yScale(d.yVal)
+								return yScale;
+							})
+							.attr("r", 0)
+							.attr("fill", "transparent")
+							.attr("stroke", "black")
+							.style("stroke-width", function(index) {
+								return 5 / (index)
+							})
+							.transition()
+								.delay(function(index) {
+									return Math.pow(index, 2.5) * 50;
+								})
+								.duration(2000)
+								.ease(d3.easeQuadOut)
+							.attr("r", 400)
+							.style("stroke-opacity", 0)
+							.on("end", function () {
+								d3.select(this).remove();
+							})
 				})
 				.transition()
 				.attr("cx", function(d) { 
 					xVal = chart.xScale(d.xVal)
 					if (xVal < 0)
-						d3.select(this).transition().attr("r", 0);
+						d3.select(this)
+							.transition()
+							.attr("r", 0);
 					return xVal; 
 				})
 				.attr("cy", function(d) { 
 					return chart.yScale(d.yVal); 
 				})
+				.duration(rateMs)
 				.ease(d3.easeLinear)
-				.duration(rateMs);
+				.attr("T",1);
 	}
 
 	function resetData() {
 		stopAnimation();
-		chart.plotArea.selectAll(".dot")
-			.interrupt();
 			
 		// Reset axis
 		xMin = dataXRange.min;
@@ -188,6 +224,7 @@
 		// Reset position of dots
 		chart.plotArea.selectAll(".dot")
 			.data(data)
+				.interrupt()
 				.attr("class", "dot")
 				.attr("cx", function(d) { 
 					return chart.xScale(d.xVal); 
