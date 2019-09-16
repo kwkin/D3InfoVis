@@ -23,11 +23,11 @@
 
 	var rateMs = 500;
 	var timer;
-	var pauseButton;
 	var playButton;
 
 	var dotColor = "red";
-	var e = d3.select("#time");
+	var dots;
+
 	init();
 
 	function init() {
@@ -38,8 +38,7 @@
 		chartHeight = height - margin.top - margin.bottom;
 
 		// load data from json
-		d3.json("./data/stream_1.json").then(function(json){
-			e.attr("T",0);
+		d3.json("./data/stream_1a.json").then(function(json){
 
 			data = json;
 			console.log("JSON loaded");
@@ -117,7 +116,7 @@
 	}
 
 	function initializeDots(data) {
-		chart.plotArea.selectAll(".dot")
+		dots = chart.plotArea.selectAll(".dot")
 			.data(data)
 			.enter().append("circle")
 				.attr("class", "dot")
@@ -131,58 +130,43 @@
 				.attr("fill", dotColor)
 				.on("click", function(d) {
 					console.log("circle: ", d.xVal, ", ", d.yVal);
-				});
-	}
+					console.log(d3.select(this).attr("T"));
 
-	function startAnimation() {
-		redrawWithAnimation();
-		timer = d3.interval(function() {
-			redrawWithAnimation()
-		}, rateMs);
-	}
-	
-	function stopAnimation() {
-		timer.stop();
-		
-		chart.plotArea.selectAll(".dot")
-			.interrupt()
-	}
+					c1 = { index: 1, parent: this };
+					c2 = { index: 2, parent: this };
+					c3 = { index: 3, parent: this };
+					c4 = { index: 4, parent: this };
+					c5 = { index: 5, parent: this };
+					c6 = { index: 6, parent: this };
+					c7 = { index: 7, parent: this };
+					indexData = [c1, c2, c3, c4, c5, c6, c7]
 
-	function redrawWithAnimation() {
-		chart.xScale.domain([++xMin, ++xMax])
-		// chart.select(".x")
-		// 	.transition()
-		// 	.ease(d3.easeLinear)
-		// 	.duration(rateMs)
-		// 	.call(chart.xAxis);
-
-		chart.plotArea.selectAll(".dot")
-			.data(data)
-				.attr("class", "dot")
-				.on("click", function(d) {
-					console.log("circle: ", d.xVal, ", ", d.yVal);
-
-					indexData = [1, 2, 3, 4]
-					var circle = chart.plotArea.selectAll(".animation")
+					chart.plotArea.selectAll(".animation")
 						.data(indexData)
 						.enter().append("circle")
-							.attr("cx", function(index) {
-								xScale = chart.xScale(d.xVal)
+							.attr("cx", function(circle) {
+								if (!isPaused) {
+									offset = (Math.pow(circle.index, 2) * 25) / rateMs;
+								}
+								else {
+									offset = 0
+								}
+								xScale = chart.xScale(parseFloat(d.xVal) - parseFloat(offset));
 								return xScale;
 							})
-							.attr("cy", function(index) { 
-								yScale = chart.yScale(d.yVal)
+							.attr("cy", function() { 
+								yScale = chart.yScale(d.yVal);
 								return yScale;
 							})
 							.attr("r", 0)
 							.attr("fill", "transparent")
 							.attr("stroke", "black")
-							.style("stroke-width", function(index) {
-								return 5 / (index)
+							.style("stroke-width", function(circle) {
+								return 5 / (circle.index)
 							})
 							.transition()
-								.delay(function(index) {
-									return Math.pow(index, 2.5) * 50;
+								.delay(function(circle) {
+									return Math.pow(circle.index, 2) * 25;
 								})
 								.duration(2000)
 								.ease(d3.easeQuadOut)
@@ -192,21 +176,48 @@
 								d3.select(this).remove();
 							})
 				})
-				.transition()
-				.attr("cx", function(d) { 
-					xVal = chart.xScale(d.xVal)
-					if (xVal < 0)
-						d3.select(this)
-							.transition()
-							.attr("r", 0);
-					return xVal; 
-				})
-				.attr("cy", function(d) { 
-					return chart.yScale(d.yVal); 
-				})
-				.duration(rateMs)
-				.ease(d3.easeLinear)
-				.attr("T",1);
+				.attr("T", 0);
+	}
+
+	function startAnimation() {
+		redrawWithAnimation();
+		timer = d3.interval(function() {
+			dots.attr("T", 0);
+			redrawWithAnimation()
+		}, rateMs);
+	}
+	
+	function stopAnimation() {
+		timer.stop();
+	}
+
+	function redrawWithAnimation() {
+		chart.xScale.domain([++xMin, ++xMax])
+		
+		chart.select(".x")
+			.transition()
+			.ease(d3.easeLinear)
+			.duration(rateMs)
+			.call(chart.xAxis);
+
+		dots.transition()
+			.attr("cx", function(d) { 
+				xVal = chart.xScale(d.xVal)
+				if (xVal < 0) {
+					d3.select(this)
+						.transition()
+						.attr("r", 0);
+				}
+				return xVal; 
+			})
+			.attr("cy", function(d) { 
+				return chart.yScale(d.yVal); 
+			})
+			.ease(d3.easeLinear)
+			.duration(function(d) {
+				return rateMs;
+			})
+			.attr("T", 1);
 	}
 
 	function resetData() {
@@ -256,6 +267,7 @@
 				.on("click", function(d, i) {
 					isPaused = true;
 					playButton.attr("value", "Play")
+					isInitialStart = true;
 					resetData();
 				});
 	}
@@ -276,7 +288,7 @@
 				})
 				.on("click", function(d, i) {
 					if(isPaused) {
-						d3.select(this).attr("value", "Pause");	
+						d3.select(this).attr("value", "Pause");
 						startAnimation();
 					}
 					else {
