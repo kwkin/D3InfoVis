@@ -130,18 +130,18 @@
 				})
 				.attr("r", circleRadius)
 				.attr("fill", dotColor)
-				.on("click", function(d) {
+				.on("mouseover", function(d) {
 					console.log("circle: ", d.xVal, ", ", d.yVal);
-					console.log(d3.select(this).attr("T"));
 
 					c1 = { index: 1, parent: this };
-					c2 = { index: 2, parent: this };
-					c3 = { index: 3, parent: this };
-					c4 = { index: 4, parent: this };
-					c5 = { index: 5, parent: this };
-					c6 = { index: 6, parent: this };
-					c7 = { index: 7, parent: this };
-					indexData = [c1, c2, c3, c4, c5, c6, c7]
+					// c2 = { index: 2, parent: this };
+					// c3 = { index: 3, parent: this };
+					// c4 = { index: 4, parent: this };
+					// c5 = { index: 5, parent: this };
+					// c6 = { index: 6, parent: this };
+					// c7 = { index: 7, parent: this };
+					indexData = [c1]
+					// indexData = [c1, c2, c3, c4, c5, c6, c7]
 
 					chart.plotArea.selectAll(".animation")
 						.data(indexData)
@@ -162,7 +162,9 @@
 							})
 							.attr("r", 0)
 							.attr("fill", "transparent")
-							.attr("stroke", "black")
+							.attr("stroke", function() {
+								return d3.interpolateRainbow(Math.random());
+							})
 							.style("stroke-width", function(circle) {
 								return 5 / (circle.index)
 							})
@@ -180,25 +182,37 @@
 	}
 
 	function startAnimation() {
-		redrawWithAnimation();
-		timer = d3.interval(function() {
-			dots.attr("T", 0);
-			redrawWithAnimation()
-		}, rateMs);
+		initialDelay = rateMs * (1 - dots.attr("T"));
+
+		// Three calls to animate:
+		// 1) finish the paused animation
+		// 2) play new animation after an initial delay
+		// 3) repeat at the configured rate
+		if (initialDelay != 0) {
+			console.log("Initial delay: " + initialDelay);
+			redrawWithAnimation(initialDelay);
+		}
+		var animateCallback = function() {
+			redrawWithAnimation(rateMs);
+			timer = setTimeout(animateCallback, rateMs);
+		};
+		timer = setTimeout(animateCallback, initialDelay);
 	}
 	
 	function stopAnimation() {
-		timer.stop();
+		clearTimeout(timer);
 
 		dots.interrupt();
 		chart.select(".x").selectAll("*").interrupt();
 	}
 
-	function redrawWithAnimation() {
-		chart.xScale.domain([++xMin, ++xMax])
+	function redrawWithAnimation(rate) {
+		if (rate >= rateMs) {
+			chart.xScale.domain([++xMin, ++xMax])
+		}
 
 		t = d3.transition()
-			.duration(rateMs)
+			.duration(rate)
 			.ease(d3.easeLinear);
 
 		chart.select(".x")
@@ -218,7 +232,10 @@
 			.attr("cy", function(d) { 
 				return chart.yScale(d.yVal); 
 			})
-			.attr("T", 1);
+			.attr("T", 1)
+			.on("end", function() {
+				d3.select(this).attr("T", 0)
+			});
 	}
 
 	function resetData() {
