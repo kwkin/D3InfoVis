@@ -21,12 +21,14 @@
 	var chartHeight;
 	var isPaused = true;
 
-	var rateMs = 500;
+	var rateMs = 250;
 	var timer;
 	var playButton;
 
 	var dotColor = "red";
 	var dots;
+
+	var t;
 
 	init();
 
@@ -172,9 +174,7 @@
 								.ease(d3.easeQuadOut)
 							.attr("r", 400)
 							.style("stroke-opacity", 0)
-							.on("end", function () {
-								d3.select(this).remove();
-							})
+							.remove();
 				})
 				.attr("T", 0);
 	}
@@ -189,18 +189,23 @@
 	
 	function stopAnimation() {
 		timer.stop();
+
+		dots.interrupt();
+		chart.select(".x").selectAll("*").interrupt();
 	}
 
 	function redrawWithAnimation() {
 		chart.xScale.domain([++xMin, ++xMax])
-		
-		chart.select(".x")
-			.transition()
-			.ease(d3.easeLinear)
+
+		t = d3.transition()
 			.duration(rateMs)
+			.ease(d3.easeLinear);
+
+		chart.select(".x")
+			.transition(t)
 			.call(chart.xAxis);
 
-		dots.transition()
+		dots.transition(t)
 			.attr("cx", function(d) { 
 				xVal = chart.xScale(d.xVal)
 				if (xVal < 0) {
@@ -212,10 +217,6 @@
 			})
 			.attr("cy", function(d) { 
 				return chart.yScale(d.yVal); 
-			})
-			.ease(d3.easeLinear)
-			.duration(function(d) {
-				return rateMs;
 			})
 			.attr("T", 1);
 	}
